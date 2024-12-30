@@ -19,6 +19,7 @@
 #include "core/platform.h"
 #include "video_core/amdgpu/liverpool.h"
 #include "video_core/amdgpu/pm4_cmds.h"
+#include "video_core/renderer_null/null_presenter.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
 
 extern Frontend::WindowSDL* g_window;
@@ -2781,8 +2782,17 @@ int PS4_SYSV_ABI Func_F916890425496553() {
 void RegisterlibSceGnmDriver(Core::Loader::SymbolsResolver* sym) {
     LOG_INFO(Lib_GnmDriver, "Initializing presenter");
     liverpool = std::make_unique<AmdGpu::Liverpool>();
-    // TODO: choose based on the backend
-    presenter = std::make_unique<Vulkan::Presenter>(*g_window, liverpool.get());
+
+    auto backend = Config::getRendererBackend();
+    if (backend == "null") {
+        presenter = std::make_unique<Null::Presenter>(*g_window);
+    } else if (backend == "vulkan") {
+        presenter = std::make_unique<Vulkan::Presenter>(*g_window, liverpool.get());
+    } else {
+        // Vulkan as a default fallback.
+        LOG_ERROR(Lib_VideoOut, "Invalid renderer backend '{}', defaulting to vulkan.", backend);
+        presenter = std::make_unique<Vulkan::Presenter>(*g_window, liverpool.get());
+    }
 
     const int result = sceKernelGetCompiledSdkVersion(&sdk_version);
     if (result != ORBIS_OK) {

@@ -211,6 +211,7 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
         ui->enableCompatibilityCheckBox->installEventFilter(this);
         ui->checkCompatibilityOnStartupCheckBox->installEventFilter(this);
         ui->updateCompatibilityButton->installEventFilter(this);
+        ui->rendererBackendComboBox->installEventFilter(this);
         ui->audioBackendComboBox->installEventFilter(this);
 
         // Input
@@ -305,6 +306,8 @@ void SettingsDialog::LoadValuesFromConfig() {
         toml::find_or<bool>(data, "General", "compatibilityEnabled", false));
     ui->checkCompatibilityOnStartupCheckBox->setChecked(
         toml::find_or<bool>(data, "General", "checkCompatibilityOnStartup", false));
+    ui->rendererBackendComboBox->setCurrentText(
+        QString::fromStdString(toml::find_or<std::string>(data, "Renderer", "backend", "vulkan")));
     ui->audioBackendComboBox->setCurrentText(
         QString::fromStdString(toml::find_or<std::string>(data, "Audio", "backend", "cubeb")));
 
@@ -543,6 +546,7 @@ void SettingsDialog::UpdateSettings() {
     Config::setUpdateChannel(ui->updateComboBox->currentText().toStdString());
     Config::setCompatibilityEnabled(ui->enableCompatibilityCheckBox->isChecked());
     Config::setCheckCompatibilityOnStartup(ui->checkCompatibilityOnStartupCheckBox->isChecked());
+    Config::setRendererBackend(ui->rendererBackendComboBox->currentText().toStdString());
     Config::setAudioBackend(ui->audioBackendComboBox->currentText().toStdString());
 
 #ifdef ENABLE_DISCORD_RPC

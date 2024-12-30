@@ -70,14 +70,13 @@ public:
         return PrepareFrameInternal(VideoCore::NULL_IMAGE_ID, is_eop);
     }
 
-    VideoCore::Image& RegisterVideoOutSurface(
-        const Libraries::VideoOut::BufferAttributeGroup& attribute, VAddr cpu_address) override {
+    void RegisterVideoOutSurface(const Libraries::VideoOut::BufferAttributeGroup& attribute,
+                                 VAddr cpu_address) override {
         vo_buffers_addr.emplace_back(cpu_address);
         auto desc = VideoCore::TextureCache::VideoOutDesc{attribute, cpu_address};
         const auto image_id = texture_cache.FindImage(desc);
         auto& image = texture_cache.GetImage(image_id);
         image.usage.vo_surface = 1u;
-        return image;
     }
 
     bool IsVideoOutSurface(const AmdGpu::Liverpool::ColorBuffer& color_buffer) override {

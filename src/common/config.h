@@ -24,6 +24,7 @@ bool getEnableDiscordRPC();
 bool getSeparateUpdateEnabled();
 bool getCompatibilityEnabled();
 bool getCheckCompatibilityOnStartup();
+std::string getRendererBackend();
 std::string getAudioBackend();
 
 std::string getLogFilter();
@@ -76,6 +77,7 @@ void setSeparateUpdateEnabled(bool use);
 void setGameInstallDirs(const std::vector<std::filesystem::path>& settings_install_dirs_config);
 void setCompatibilityEnabled(bool use);
 void setCheckCompatibilityOnStartup(bool use);
+void setRendererBackend(std::string backend);
 void setAudioBackend(std::string backend);
 
 void setCursorState(s16 cursorState);

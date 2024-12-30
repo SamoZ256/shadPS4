@@ -36,8 +36,8 @@ public:
 
     virtual Frame* PrepareBlankFrame(bool is_eop) = 0;
 
-    virtual VideoCore::Image& RegisterVideoOutSurface(
-        const Libraries::VideoOut::BufferAttributeGroup& attribute, VAddr cpu_address) = 0;
+    virtual void RegisterVideoOutSurface(const Libraries::VideoOut::BufferAttributeGroup& attribute,
+                                         VAddr cpu_address) = 0;
 
     virtual bool IsVideoOutSurface(const AmdGpu::Liverpool::ColorBuffer& color_buffer) = 0;
 

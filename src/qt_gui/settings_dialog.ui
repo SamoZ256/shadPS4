@@ -979,6 +979,29 @@
           <item>
            <layout class="QVBoxLayout" name="graphicsTabLayoutLeft">
             <item>
+            <widget class="QGroupBox" name="rendererBackendGroupBox">
+                <property name="title">
+                <string>Renderer Backend</string>
+                </property>
+                <layout class="QVBoxLayout" name="rendererBackendBoxLayout">
+                <item>
+                <widget class="QComboBox" name="rendererBackendComboBox">
+                <item>
+                    <property name="text">
+                    <string>null</string>
+                    </property>
+                </item>
+                <item>
+                    <property name="text">
+                    <string>vulkan</string>
+                    </property>
+                </item>
+                </widget>
+                </item>
+                </layout>
+            </widget>
+            </item>
+            <item>
              <widget class="QGroupBox" name="graphicsAdapterGroupBox">
               <property name="title">
                <string>Graphics Device</string>

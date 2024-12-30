@@ -67,6 +67,7 @@ static int cursorHideTimeout = 5; // 5 seconds (default)
 static bool separateupdatefolder = false;
 static bool compatibilityData = false;
 static bool checkCompatibilityOnStartup = false;
+static std::string rendererBackend = "vulkan";
 static std::string audioBackend = "cubeb";
 
 // Gui
@@ -240,6 +241,10 @@ bool getCheckCompatibilityOnStartup() {
     return checkCompatibilityOnStartup;
 }
 
+std::string getRendererBackend() {
+    return rendererBackend;
+}
+
 std::string getAudioBackend() {
     return audioBackend;
 }
@@ -374,6 +379,10 @@ void setCompatibilityEnabled(bool use) {
 
 void setCheckCompatibilityOnStartup(bool use) {
     checkCompatibilityOnStartup = use;
+}
+
+void setRendererBackend(std::string backend) {
+    rendererBackend = backend;
 }
 
 void setAudioBackend(std::string backend) {
@@ -620,6 +629,12 @@ void load(const std::filesystem::path& path) {
         vkCrashDiagnostic = toml::find_or<bool>(vk, "crashDiagnostic", false);
     }
 
+    if (data.contains("Renderer")) {
+        const toml::value& renderer = data.at("Renderer");
+
+        rendererBackend = toml::find_or<std::string>(renderer, "backend", "vulkan");
+    }
+
     if (data.contains("Audio")) {
         const toml::value& audio = data.at("Audio");
 
@@ -724,6 +739,7 @@ void save(const std::filesystem::path& path) {
     data["Vulkan"]["rdocEnable"] = rdocEnable;
     data["Vulkan"]["rdocMarkersEnable"] = vkMarkers;
     data["Vulkan"]["crashDiagnostic"] = vkCrashDiagnostic;
+    data["Renderer"]["backend"] = rendererBackend;
     data["Audio"]["backend"] = audioBackend;
     data["Debug"]["DebugDump"] = isDebugDump;
     data["Debug"]["CollectShader"] = isShaderDebug;
@@ -828,6 +844,7 @@ void setDefaultValues() {
     separateupdatefolder = false;
     compatibilityData = false;
     checkCompatibilityOnStartup = false;
+    rendererBackend = "vulkan";
     audioBackend = "cubeb";
 }
 

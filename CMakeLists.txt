@@ -724,6 +724,10 @@ set(VIDEO_CORE src/video_core/amdgpu/liverpool.cpp
                src/video_core/buffer_cache/memory_tracker_base.h
                src/video_core/buffer_cache/range_set.h
                src/video_core/buffer_cache/word_manager.h
+               src/video_core/renderer_null/null_presenter.cpp
+               src/video_core/renderer_null/null_presenter.h
+               src/video_core/renderer_null/null_rasterizer.cpp
+               src/video_core/renderer_null/null_rasterizer.h
                src/video_core/renderer_vulkan/liverpool_to_vk.cpp
                src/video_core/renderer_vulkan/liverpool_to_vk.h
                src/video_core/renderer_vulkan/vk_common.cpp
