@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <deque>
+
 #include <SDL3/SDL_events.h>
 #include <imgui.h>
 
@@ -10,18 +12,12 @@
 #include "imgui/imgui_layer.h"
 #include "imgui_core.h"
 #include "imgui_impl_sdl3.h"
-#include "imgui_impl_vulkan.h"
 #include "imgui_internal.h"
 #include "sdl_window.h"
 #include "texture_manager.h"
-#include "video_core/renderer_vulkan/vk_presenter.h"
 
 #include "imgui_fonts/notosansjp_regular.ttf.g.cpp"
 #include "imgui_fonts/proggyvector_regular.ttf.g.cpp"
-
-static void CheckVkResult(const vk::Result err) {
-    LOG_ERROR(ImGui, "Vulkan error {}", vk::to_string(err));
-}
 
 static std::vector<ImGui::Layer*> layers;
 
@@ -37,9 +33,7 @@ namespace ImGui {
 
 namespace Core {
 
-void Initialize(const ::Vulkan::Instance& instance, const Frontend::WindowSDL& window,
-                const u32 image_count, vk::Format surface_format,
-                const vk::AllocationCallbacks* allocator) {
+void Initialize(const Frontend::WindowSDL& window) {
 
     const auto config_path = GetUserPath(Common::FS::PathType::UserDir) / "imgui.ini";
     const auto log_path = GetUserPath(Common::FS::PathType::LogDir) / "imgui_log.txt";
@@ -85,23 +79,6 @@ void Initialize(const ::Vulkan::Instance& instance, const Frontend::WindowSDL& w
     ::Core::Devtools::Layer::SetupSettings();
     Sdl::Init(window.GetSDLWindow());
 
-    const Vulkan::InitInfo vk_info{
-        .instance = instance.GetInstance(),
-        .physical_device = instance.GetPhysicalDevice(),
-        .device = instance.GetDevice(),
-        .queue_family = instance.GetPresentQueueFamilyIndex(),
-        .queue = instance.GetPresentQueue(),
-        .image_count = image_count,
-        .min_allocation_size = 1024 * 1024,
-        .pipeline_rendering_create_info{
-            .colorAttachmentCount = 1,
-            .pColorAttachmentFormats = &surface_format,
-        },
-        .allocator = allocator,
-        .check_vk_result_fn = &CheckVkResult,
-    };
-    Vulkan::Init(vk_info);
-
     TextureManager::StartWorker();
 
     char label[32];
@@ -117,20 +94,13 @@ void OnResize() {
     Sdl::OnResize();
 }
 
-void Shutdown(const vk::Device& device) {
-    auto result = device.waitIdle();
-    if (result != vk::Result::eSuccess) {
-        LOG_WARNING(ImGui, "Failed to wait for Vulkan device idle on shutdown: {}",
-                    vk::to_string(result));
-    }
-
+void Shutdown() {
     TextureManager::StopWorker();
 
     const ImGuiIO& io = GetIO();
     const auto ini_filename = (void*)io.IniFilename;
     const auto log_filename = (void*)io.LogFilename;
 
-    Vulkan::Shutdown();
     Sdl::Shutdown();
     DestroyContext();
 
@@ -192,41 +162,8 @@ void NewFrame() {
     }
 }
 
-void Render(const vk::CommandBuffer& cmdbuf, ::Vulkan::Frame* frame) {
+void Render() {
     ImGui::Render();
-    ImDrawData* draw_data = GetDrawData();
-    if (draw_data->CmdListsCount == 0) {
-        return;
-    }
-
-    if (Config::vkMarkersEnabled()) {
-        cmdbuf.beginDebugUtilsLabelEXT(vk::DebugUtilsLabelEXT{
-            .pLabelName = "ImGui Render",
-        });
-    }
-
-    vk::RenderingAttachmentInfo color_attachments[1]{
-        {
-            .imageView = frame->image_view,
-            .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .loadOp = vk::AttachmentLoadOp::eLoad,
-            .storeOp = vk::AttachmentStoreOp::eStore,
-        },
-    };
-    vk::RenderingInfo render_info{};
-    render_info.renderArea = vk::Rect2D{
-        .offset = {0, 0},
-        .extent = {frame->width, frame->height},
-    };
-    render_info.layerCount = 1;
-    render_info.colorAttachmentCount = 1;
-    render_info.pColorAttachments = color_attachments;
-    cmdbuf.beginRendering(render_info);
-    Vulkan::RenderDrawData(*draw_data, cmdbuf);
-    cmdbuf.endRendering();
-    if (Config::vkMarkersEnabled()) {
-        cmdbuf.endDebugUtilsLabelEXT();
-    }
 }
 
 } // namespace Core

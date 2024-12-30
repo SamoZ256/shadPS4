@@ -9,6 +9,7 @@
 #include "core/file_format/splash.h"
 #include "core/libraries/system/systemservice.h"
 #include "imgui/renderer/imgui_core.h"
+#include "imgui/renderer/imgui_core_vulkan.h"
 #include "sdl_window.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
@@ -325,8 +326,8 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     CreatePostProcessPipeline();
 
     // Setup ImGui
-    ImGui::Core::Initialize(instance, window, num_images,
-                            FormatToUnorm(swapchain.GetSurfaceFormat().format));
+    ImGui::Core::Vulkan::Initialize(instance, window, num_images,
+                                    FormatToUnorm(swapchain.GetSurfaceFormat().format));
     ImGui::Layer::AddLayer(Common::Singleton<Core::Devtools::Layer>::Instance());
 }
 
@@ -339,7 +340,7 @@ Presenter::~Presenter() {
         device.destroyImageView(frame.image_view);
         device.destroyFence(frame.present_done);
     }
-    ImGui::Core::Shutdown(device);
+    ImGui::Core::Vulkan::Shutdown(device);
 }
 
 VideoCore::Rasterizer& Presenter::GetRasterizer() const {
@@ -673,7 +674,7 @@ void Presenter::Present(VideoCore::Frame* frame) {
     auto& scheduler = present_scheduler;
     const auto cmdbuf = scheduler.CommandBuffer();
 
-    ImGui::Core::Render(cmdbuf, vk_frame);
+    ImGui::Core::Vulkan::Render(cmdbuf, vk_frame);
 
     {
         auto* profiler_ctx = instance.GetProfilerContext();

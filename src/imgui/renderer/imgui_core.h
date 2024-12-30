@@ -14,18 +14,16 @@ struct Frame;
 
 namespace ImGui::Core {
 
-void Initialize(const Vulkan::Instance& instance, const Frontend::WindowSDL& window,
-                u32 image_count, vk::Format surface_format,
-                const vk::AllocationCallbacks* allocator = nullptr);
+void Initialize(const Frontend::WindowSDL& window);
 
 void OnResize();
 
-void Shutdown(const vk::Device& device);
+void Shutdown();
 
 bool ProcessEvent(SDL_Event* event);
 
 void NewFrame();
 
-void Render(const vk::CommandBuffer& cmdbuf, Vulkan::Frame* frame);
+void Render();
 
 } // namespace ImGui::Core
