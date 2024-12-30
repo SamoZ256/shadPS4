@@ -22,7 +22,7 @@
 #include "video_core/renderer_vulkan/vk_presenter.h"
 
 extern Frontend::WindowSDL* g_window;
-std::unique_ptr<Vulkan::Presenter> presenter;
+std::unique_ptr<VideoCore::Presenter> presenter;
 std::unique_ptr<AmdGpu::Liverpool> liverpool;
 
 namespace Libraries::GnmDriver {
@@ -107,7 +107,7 @@ static constexpr std::array InitSequence175{
     // A fake preamble to mimic context reset sent by FW
     0xc0001200u, 0u, // IT_CLEAR_STATE
 
-    // Actual init state sequence 
+    // Actual init state sequence
     0xc0017600u, 0x216u, 0xffffffffu,
     0xc0017600u, 0x217u, 0xffffffffu,
     0xc0017600u, 0x215u, 0u,
@@ -153,7 +153,7 @@ static constexpr std::array InitSequence200{
     // A fake preamble to mimic context reset sent by FW
     0xc0001200u, 0u, // IT_CLEAR_STATE
 
-    // Actual init state sequence    
+    // Actual init state sequence
     0xc0017600u, 0x216u, 0xffffffffu,
     0xc0017600u, 0x217u, 0xffffffffu,
     0xc0017600u, 0x215u, 0u,
@@ -200,7 +200,7 @@ static constexpr std::array InitSequence350{
     // A fake preamble to mimic context reset sent by FW
     0xc0001200u, 0u, // IT_CLEAR_STATE
 
-    // Actual init state sequence    
+    // Actual init state sequence
     0xc0017600u, 0x216u, 0xffffffffu,
     0xc0017600u, 0x217u, 0xffffffffu,
     0xc0017600u, 0x215u, 0u,
@@ -1503,7 +1503,7 @@ s32 PS4_SYSV_ABI sceGnmSetEmbeddedPsShader(u32* cmdbuf, u32 size, u32 shader_id,
 
     constexpr static std::array ps1_code alignas(256) = {
         0xbeeb03ffu, 0x00000003u, // s_mov_b32     vcc_hi, $0x00000003
-        0x7e040280u,              // v_mov_b32     v2, 0 
+        0x7e040280u,              // v_mov_b32     v2, 0
         0xf8001803u, 0x02020202u, // exp           mrt0, v2, v2, off, off vm done
         0xbf810000u,              // s_endpgm
 
@@ -2781,6 +2781,7 @@ int PS4_SYSV_ABI Func_F916890425496553() {
 void RegisterlibSceGnmDriver(Core::Loader::SymbolsResolver* sym) {
     LOG_INFO(Lib_GnmDriver, "Initializing presenter");
     liverpool = std::make_unique<AmdGpu::Liverpool>();
+    // TODO: choose based on the backend
     presenter = std::make_unique<Vulkan::Presenter>(*g_window, liverpool.get());
 
     const int result = sceKernelGetCompiledSdkVersion(&sdk_version);

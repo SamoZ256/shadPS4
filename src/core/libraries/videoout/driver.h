@@ -11,7 +11,7 @@
 #include <mutex>
 #include <queue>
 
-namespace Vulkan {
+namespace VideoCore {
 struct Frame;
 }
 
@@ -90,7 +90,7 @@ public:
 
 private:
     struct Request {
-        Vulkan::Frame* frame;
+        VideoCore::Frame* frame;
         VideoOutPort* port;
         s64 flip_arg;
         s32 index;

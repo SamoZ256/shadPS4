@@ -15,10 +15,9 @@
 #include "core/devtools/options.h"
 #include "imgui/imgui_std.h"
 #include "sdl_window.h"
-#include "video_core/renderer_vulkan/vk_presenter.h"
-#include "video_core/renderer_vulkan/vk_rasterizer.h"
+#include "video_core/presenter.h"
 
-extern std::unique_ptr<Vulkan::Presenter> presenter;
+extern std::unique_ptr<VideoCore::Presenter> presenter;
 
 using namespace ImGui;
 
@@ -37,6 +36,8 @@ ShaderList::Selection::~Selection() {
 }
 
 void ShaderList::Selection::ReloadShader(DebugStateType::ShaderDump& value) {
+    // TODO: uncomment
+    /*
     auto& spv = value.is_patched ? value.patch_spv : value.spv;
     if (spv.empty()) {
         return;
@@ -45,6 +46,7 @@ void ShaderList::Selection::ReloadShader(DebugStateType::ShaderDump& value) {
     if (const auto m = cache.ReplaceShader(value.module, spv); m) {
         value.module = *m;
     }
+    */
 }
 
 bool ShaderList::Selection::DrawShader(DebugStateType::ShaderDump& value) {

@@ -12,13 +12,13 @@
 #include "imgui/imgui_std.h"
 #include "imgui_internal.h"
 #include "options.h"
-#include "video_core/renderer_vulkan/vk_presenter.h"
+#include "video_core/presenter.h"
 #include "widget/frame_dump.h"
 #include "widget/frame_graph.h"
 #include "widget/memory_map.h"
 #include "widget/shader_list.h"
 
-extern std::unique_ptr<Vulkan::Presenter> presenter;
+extern std::unique_ptr<VideoCore::Presenter> presenter;
 
 using namespace ImGui;
 using namespace Core::Devtools;

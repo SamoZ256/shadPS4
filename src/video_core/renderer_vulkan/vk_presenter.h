@@ -6,6 +6,7 @@
 #include <condition_variable>
 
 #include "video_core/amdgpu/liverpool.h"
+#include "video_core/presenter.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/renderer_vulkan/vk_swapchain.h"
@@ -21,7 +22,7 @@ struct Liverpool;
 
 namespace Vulkan {
 
-struct Frame {
+struct Frame : public VideoCore::Frame {
     u32 width;
     u32 height;
     VmaAllocation allocation;
@@ -40,37 +41,37 @@ enum SchedulerType {
 
 class Rasterizer;
 
-class Presenter {
+class Presenter : public VideoCore::Presenter {
     struct PostProcessSettings {
         float gamma = 1.0f;
     };
 
 public:
     Presenter(Frontend::WindowSDL& window, AmdGpu::Liverpool* liverpool);
-    ~Presenter();
+    ~Presenter() override;
 
-    float& GetGammaRef() {
+    float& GetGammaRef() override {
         return pp_settings.gamma;
     }
 
-    Frontend::WindowSDL& GetWindow() const {
+    Frontend::WindowSDL& GetWindow() const override {
         return window;
     }
 
-    Frame* PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& attribute,
-                        VAddr cpu_address, bool is_eop) {
+    VideoCore::Frame* PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& attribute,
+                                   VAddr cpu_address, bool is_eop) override {
         auto desc = VideoCore::TextureCache::VideoOutDesc{attribute, cpu_address};
         const auto image_id = texture_cache.FindImage(desc);
         texture_cache.UpdateImage(image_id, is_eop ? nullptr : &flip_scheduler);
         return PrepareFrameInternal(image_id, is_eop);
     }
 
-    Frame* PrepareBlankFrame(bool is_eop) {
+    VideoCore::Frame* PrepareBlankFrame(bool is_eop) override {
         return PrepareFrameInternal(VideoCore::NULL_IMAGE_ID, is_eop);
     }
 
     VideoCore::Image& RegisterVideoOutSurface(
-        const Libraries::VideoOut::BufferAttributeGroup& attribute, VAddr cpu_address) {
+        const Libraries::VideoOut::BufferAttributeGroup& attribute, VAddr cpu_address) override {
         vo_buffers_addr.emplace_back(cpu_address);
         auto desc = VideoCore::TextureCache::VideoOutDesc{attribute, cpu_address};
         const auto image_id = texture_cache.FindImage(desc);
@@ -79,24 +80,22 @@ public:
         return image;
     }
 
-    bool IsVideoOutSurface(const AmdGpu::Liverpool::ColorBuffer& color_buffer) {
+    bool IsVideoOutSurface(const AmdGpu::Liverpool::ColorBuffer& color_buffer) override {
         return std::ranges::find_if(vo_buffers_addr, [&](VAddr vo_buffer) {
                    return vo_buffer == color_buffer.Address();
                }) != vo_buffers_addr.cend();
     }
 
-    bool ShowSplash(Frame* frame = nullptr);
-    void Present(Frame* frame);
-    void RecreateFrame(Frame* frame, u32 width, u32 height);
+    bool ShowSplash(VideoCore::Frame* frame = nullptr) override;
+    void Present(VideoCore::Frame* frame) override;
+    void RecreateFrame(VideoCore::Frame* frame, u32 width, u32 height) override;
 
-    void FlushDraw() {
+    void FlushDraw() override {
         SubmitInfo info{};
         draw_scheduler.Flush(info);
     }
 
-    Rasterizer& GetRasterizer() const {
-        return *rasterizer.get();
-    }
+    VideoCore::Rasterizer& GetRasterizer() const override;
 
 private:
     void CreatePostProcessPipeline();

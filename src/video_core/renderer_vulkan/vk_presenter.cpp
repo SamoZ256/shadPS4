@@ -342,13 +342,19 @@ Presenter::~Presenter() {
     ImGui::Core::Shutdown(device);
 }
 
-void Presenter::RecreateFrame(Frame* frame, u32 width, u32 height) {
+VideoCore::Rasterizer& Presenter::GetRasterizer() const {
+    return *rasterizer.get();
+}
+
+void Presenter::RecreateFrame(VideoCore::Frame* frame, u32 width, u32 height) {
+    Frame* vk_frame = static_cast<Frame*>(frame);
+
     const vk::Device device = instance.GetDevice();
-    if (frame->image_view) {
-        device.destroyImageView(frame->image_view);
+    if (vk_frame->image_view) {
+        device.destroyImageView(vk_frame->image_view);
     }
-    if (frame->image) {
-        vmaDestroyImage(instance.GetAllocator(), frame->image, frame->allocation);
+    if (vk_frame->image) {
+        vmaDestroyImage(instance.GetAllocator(), vk_frame->image, vk_frame->allocation);
     }
 
     const vk::Format format = swapchain.GetSurfaceFormat().format;
@@ -377,16 +383,16 @@ void Presenter::RecreateFrame(Frame* frame, u32 width, u32 height) {
     VkImageCreateInfo unsafe_image_info = static_cast<VkImageCreateInfo>(image_info);
 
     VkResult result = vmaCreateImage(instance.GetAllocator(), &unsafe_image_info, &alloc_info,
-                                     &unsafe_image, &frame->allocation, nullptr);
+                                     &unsafe_image, &vk_frame->allocation, nullptr);
     if (result != VK_SUCCESS) [[unlikely]] {
         LOG_CRITICAL(Render_Vulkan, "Failed allocating texture with error {}",
                      vk::to_string(vk::Result{result}));
         UNREACHABLE();
     }
-    frame->image = vk::Image{unsafe_image};
+    vk_frame->image = vk::Image{unsafe_image};
 
     const vk::ImageViewCreateInfo view_info = {
-        .image = frame->image,
+        .image = vk_frame->image,
         .viewType = vk::ImageViewType::e2D,
         .format = FormatToUnorm(format),
         .subresourceRange{
@@ -400,12 +406,14 @@ void Presenter::RecreateFrame(Frame* frame, u32 width, u32 height) {
     auto [view_result, view] = device.createImageView(view_info);
     ASSERT_MSG(view_result == vk::Result::eSuccess, "Failed to create frame image view: {}",
                vk::to_string(view_result));
-    frame->image_view = view;
-    frame->width = width;
-    frame->height = height;
+    vk_frame->image_view = view;
+    vk_frame->width = width;
+    vk_frame->height = height;
 }
 
-bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
+bool Presenter::ShowSplash(VideoCore::Frame* frame /*= nullptr*/) {
+    Frame* vk_frame = static_cast<Frame*>(frame);
+
     const auto* splash = Common::Singleton<Splash>::Instance();
     if (splash->GetImageData().empty()) {
         return false;
@@ -418,7 +426,7 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
     draw_scheduler.EndRendering();
     const auto cmdbuf = draw_scheduler.CommandBuffer();
 
-    if (!frame) {
+    if (!vk_frame) {
         if (!splash_img.has_value()) {
             VideoCore::ImageInfo info{};
             info.pixel_format = vk::Format::eR8G8B8A8Srgb;
@@ -438,7 +446,7 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
                                 vk::AccessFlagBits2::eTransferRead, {}, cmdbuf);
         }
 
-        frame = GetRenderFrame();
+        vk_frame = GetRenderFrame();
     }
 
     const auto frame_subresources = vk::ImageSubresourceRange{
@@ -456,7 +464,7 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
                                 .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
                                 .oldLayout = vk::ImageLayout::eUndefined,
                                 .newLayout = vk::ImageLayout::eTransferDstOptimal,
-                                .image = frame->image,
+                                .image = vk_frame->image,
                                 .subresourceRange{frame_subresources}};
 
     cmdbuf.pipelineBarrier2(vk::DependencyInfo{
@@ -464,10 +472,10 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
         .pImageMemoryBarriers = &pre_barrier,
     });
 
-    cmdbuf.blitImage(splash_img->image, vk::ImageLayout::eTransferSrcOptimal, frame->image,
+    cmdbuf.blitImage(splash_img->image, vk::ImageLayout::eTransferSrcOptimal, vk_frame->image,
                      vk::ImageLayout::eTransferDstOptimal,
                      MakeImageBlitFit(splash->GetImageInfo().width, splash->GetImageInfo().height,
-                                      frame->width, frame->height),
+                                      vk_frame->width, vk_frame->height),
                      vk::Filter::eLinear);
 
     const auto post_barrier =
@@ -477,7 +485,7 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
                                 .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
                                 .oldLayout = vk::ImageLayout::eTransferDstOptimal,
                                 .newLayout = vk::ImageLayout::eGeneral,
-                                .image = frame->image,
+                                .image = vk_frame->image,
                                 .subresourceRange{frame_subresources}};
 
     cmdbuf.pipelineBarrier2(vk::DependencyInfo{
@@ -486,12 +494,12 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
     });
 
     // Flush frame creation commands.
-    frame->ready_semaphore = draw_scheduler.GetMasterSemaphore()->Handle();
-    frame->ready_tick = draw_scheduler.CurrentTick();
+    vk_frame->ready_semaphore = draw_scheduler.GetMasterSemaphore()->Handle();
+    vk_frame->ready_tick = draw_scheduler.CurrentTick();
     SubmitInfo info{};
     draw_scheduler.Flush(info);
 
-    Present(frame);
+    Present(vk_frame);
     return true;
 }
 
@@ -627,11 +635,13 @@ Frame* Presenter::PrepareFrameInternal(VideoCore::ImageId image_id, bool is_eop)
     return frame;
 }
 
-void Presenter::Present(Frame* frame) {
+void Presenter::Present(VideoCore::Frame* frame) {
+    Frame* vk_frame = static_cast<Frame*>(frame);
+
     // Free the frame for reuse
     const auto free_frame = [&] {
         std::scoped_lock fl{free_mutex};
-        free_queue.push(frame);
+        free_queue.push(vk_frame);
         free_cv.notify_one();
     };
 
@@ -654,7 +664,7 @@ void Presenter::Present(Frame* frame) {
     // Reset fence for queue submission. Do it here instead of GetRenderFrame() because we may
     // skip frame because of slow swapchain recreation. If a frame skip occurs, we skip signal
     // the frame's present fence and future GetRenderFrame() call will hang waiting for this frame.
-    instance.GetDevice().resetFences(frame->present_done);
+    instance.GetDevice().resetFences(vk_frame->present_done);
 
     ImGui::Core::NewFrame();
 
@@ -663,7 +673,7 @@ void Presenter::Present(Frame* frame) {
     auto& scheduler = present_scheduler;
     const auto cmdbuf = scheduler.CommandBuffer();
 
-    ImGui::Core::Render(cmdbuf, frame);
+    ImGui::Core::Render(cmdbuf, vk_frame);
 
     {
         auto* profiler_ctx = instance.GetProfilerContext();
@@ -695,7 +705,7 @@ void Presenter::Present(Frame* frame) {
                 .newLayout = vk::ImageLayout::eTransferSrcOptimal,
                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                .image = frame->image,
+                .image = vk_frame->image,
                 .subresourceRange{
                     .aspectMask = vk::ImageAspectFlagBits::eColor,
                     .baseMipLevel = 0,
@@ -727,9 +737,9 @@ void Presenter::Present(Frame* frame) {
                                vk::DependencyFlagBits::eByRegion, {}, {}, pre_barriers);
 
         cmdbuf.blitImage(
-            frame->image, vk::ImageLayout::eTransferSrcOptimal, swapchain_image,
+            vk_frame->image, vk::ImageLayout::eTransferSrcOptimal, swapchain_image,
             vk::ImageLayout::eTransferDstOptimal,
-            MakeImageBlitStretch(frame->width, frame->height, extent.width, extent.height),
+            MakeImageBlitStretch(vk_frame->width, vk_frame->height, extent.width, extent.height),
             vk::Filter::eLinear);
 
         cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
@@ -744,9 +754,9 @@ void Presenter::Present(Frame* frame) {
     // Flush vulkan commands.
     SubmitInfo info{};
     info.AddWait(swapchain.GetImageAcquiredSemaphore());
-    info.AddWait(frame->ready_semaphore, frame->ready_tick);
+    info.AddWait(vk_frame->ready_semaphore, vk_frame->ready_tick);
     info.AddSignal(swapchain.GetPresentReadySemaphore());
-    info.AddSignal(frame->present_done);
+    info.AddSignal(vk_frame->present_done);
     scheduler.Flush(info);
 
     // Present to swapchain.
