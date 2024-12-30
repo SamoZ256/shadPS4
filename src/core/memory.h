@@ -12,7 +12,7 @@
 #include "core/address_space.h"
 #include "core/libraries/kernel/memory.h"
 
-namespace Vulkan {
+namespace VideoCore {
 class Rasterizer;
 }
 
@@ -133,7 +133,7 @@ public:
     explicit MemoryManager();
     ~MemoryManager();
 
-    void SetRasterizer(Vulkan::Rasterizer* rasterizer_) {
+    void SetRasterizer(VideoCore::Rasterizer* rasterizer_) {
         rasterizer = rasterizer_;
     }
 
@@ -262,7 +262,7 @@ private:
     size_t total_direct_size{};
     size_t total_flexible_size{};
     size_t flexible_usage{};
-    Vulkan::Rasterizer* rasterizer{};
+    VideoCore::Rasterizer* rasterizer{};
 
     friend class ::Core::Devtools::Widget::MemoryMapViewer;
 };

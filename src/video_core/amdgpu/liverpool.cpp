@@ -13,8 +13,8 @@
 #include "core/memory.h"
 #include "video_core/amdgpu/liverpool.h"
 #include "video_core/amdgpu/pm4_cmds.h"
+#include "video_core/rasterizer.h"
 #include "video_core/renderdoc.h"
-#include "video_core/renderer_vulkan/vk_rasterizer.h"
 
 namespace AmdGpu {
 

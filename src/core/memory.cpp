@@ -8,7 +8,7 @@
 #include "core/libraries/kernel/memory.h"
 #include "core/libraries/kernel/orbis_error.h"
 #include "core/memory.h"
-#include "video_core/renderer_vulkan/vk_rasterizer.h"
+#include "video_core/rasterizer.h"
 
 namespace Core {
 

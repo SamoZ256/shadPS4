@@ -24,7 +24,7 @@
 #include "video_core/amdgpu/pixel_format.h"
 #include "video_core/amdgpu/resource.h"
 
-namespace Vulkan {
+namespace VideoCore {
 class Rasterizer;
 }
 
@@ -1351,7 +1351,7 @@ public:
         vo_port = port;
     }
 
-    void BindRasterizer(Vulkan::Rasterizer* rasterizer_) {
+    void BindRasterizer(VideoCore::Rasterizer* rasterizer_) {
         rasterizer = rasterizer_;
     }
 
@@ -1456,7 +1456,7 @@ private:
         static std::array<u8, 48_KB> constants_heap;
     } cblock{};
 
-    Vulkan::Rasterizer* rasterizer{};
+    VideoCore::Rasterizer* rasterizer{};
     Libraries::VideoOut::VideoOutPort* vo_port{};
     std::jthread process_thread{};
     std::atomic<u32> num_submits{};

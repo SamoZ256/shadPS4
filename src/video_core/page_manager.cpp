@@ -10,7 +10,7 @@
 #include "core/memory.h"
 #include "core/signals.h"
 #include "video_core/page_manager.h"
-#include "video_core/renderer_vulkan/vk_rasterizer.h"
+#include "video_core/rasterizer.h"
 
 #ifndef _WIN64
 #include <sys/mman.h>
@@ -31,7 +31,7 @@ constexpr size_t PAGEBITS = 12;
 
 #ifdef ENABLE_USERFAULTFD
 struct PageManager::Impl {
-    Impl(Vulkan::Rasterizer* rasterizer_) : rasterizer{rasterizer_} {
+    Impl(VideoCore::Rasterizer* rasterizer_) : rasterizer{rasterizer_} {
         uffd = syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK | UFFD_USER_MODE_ONLY);
         ASSERT_MSG(uffd != -1, "{}", Common::GetLastErrorMsg());
 
@@ -118,13 +118,13 @@ struct PageManager::Impl {
         }
     }
 
-    Vulkan::Rasterizer* rasterizer;
+    VideoCore::Rasterizer* rasterizer;
     std::jthread ufd_thread;
     int uffd;
 };
 #else
 struct PageManager::Impl {
-    Impl(Vulkan::Rasterizer* rasterizer_) {
+    Impl(VideoCore::Rasterizer* rasterizer_) {
         rasterizer = rasterizer_;
 
         // Should be called first.
@@ -157,11 +157,11 @@ struct PageManager::Impl {
         return false;
     }
 
-    inline static Vulkan::Rasterizer* rasterizer;
+    inline static VideoCore::Rasterizer* rasterizer;
 };
 #endif
 
-PageManager::PageManager(Vulkan::Rasterizer* rasterizer_)
+PageManager::PageManager(VideoCore::Rasterizer* rasterizer_)
     : impl{std::make_unique<Impl>(rasterizer_)}, rasterizer{rasterizer_} {}
 
 PageManager::~PageManager() = default;
