@@ -5,6 +5,7 @@
 
 #include "video_core/buffer_cache/buffer_cache.h"
 #include "video_core/page_manager.h"
+#include "video_core/rasterizer.h"
 #include "video_core/renderer_vulkan/vk_pipeline_cache.h"
 #include "video_core/texture_cache/texture_cache.h"
 
@@ -22,11 +23,11 @@ class Scheduler;
 class RenderState;
 class GraphicsPipeline;
 
-class Rasterizer {
+class Rasterizer : public VideoCore::Rasterizer {
 public:
     explicit Rasterizer(const Instance& instance, Scheduler& scheduler,
                         AmdGpu::Liverpool* liverpool);
-    ~Rasterizer();
+    ~Rasterizer() override;
 
     [[nodiscard]] Scheduler& GetScheduler() noexcept {
         return scheduler;
@@ -40,28 +41,28 @@ public:
         return texture_cache;
     }
 
-    void Draw(bool is_indexed, u32 index_offset = 0);
+    void Draw(bool is_indexed, u32 index_offset = 0) override;
     void DrawIndirect(bool is_indexed, VAddr arg_address, u32 offset, u32 size, u32 max_count,
-                      VAddr count_address);
+                      VAddr count_address) override;
 
-    void DispatchDirect();
-    void DispatchIndirect(VAddr address, u32 offset, u32 size);
+    void DispatchDirect() override;
+    void DispatchIndirect(VAddr address, u32 offset, u32 size) override;
 
-    void ScopeMarkerBegin(const std::string_view& str);
-    void ScopeMarkerEnd();
-    void ScopedMarkerInsert(const std::string_view& str);
-    void ScopedMarkerInsertColor(const std::string_view& str, const u32 color);
+    void ScopeMarkerBegin(const std::string_view& str) override;
+    void ScopeMarkerEnd() override;
+    void ScopedMarkerInsert(const std::string_view& str) override;
+    void ScopedMarkerInsertColor(const std::string_view& str, const u32 color) override;
 
-    void InlineData(VAddr address, const void* value, u32 num_bytes, bool is_gds);
-    u32 ReadDataFromGds(u32 gsd_offset);
-    bool InvalidateMemory(VAddr addr, u64 size);
-    bool IsMapped(VAddr addr, u64 size);
-    void MapMemory(VAddr addr, u64 size);
-    void UnmapMemory(VAddr addr, u64 size);
+    void InlineData(VAddr address, const void* value, u32 num_bytes, bool is_gds) override;
+    u32 ReadDataFromGds(u32 gsd_offset) override;
+    bool InvalidateMemory(VAddr addr, u64 size) override;
+    bool IsMapped(VAddr addr, u64 size) override;
+    void MapMemory(VAddr addr, u64 size) override;
+    void UnmapMemory(VAddr addr, u64 size) override;
 
-    void CpSync();
-    u64 Flush();
-    void Finish();
+    void CpSync() override;
+    u64 Flush() override;
+    void Finish() override;
 
     PipelineCache& GetPipelineCache() {
         return pipeline_cache;
